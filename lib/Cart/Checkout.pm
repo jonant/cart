@@ -1,20 +1,22 @@
-
+package Cart::Checkout;
 use JSON;
 use Data::Dumper;
 
 # prices as specified
-#| Item Code | Unit Price | Special Price |
-#|:---------:|:----------:|:-------------:|
-#|     A	    |      50    |    3 for 140  |
-#|     B     |      35    |    2 for 60   |
-#|     C     |      25    |               |
-#|     D     |      12    |               |
 my $prices = {
     A => { unit_price => 50, special_price => [3, 140] },
     B => { unit_price => 35, special_price => [2, 60] },
     C => { unit_price => 25 },
     D => { unit_price => 12 },
 };
+
+=pod
+
+=head1  total_price
+
+    takes one unnamed arg, $scanned_items, a hashref containing quantity scanned so far for each product code
+
+=cut
 
 sub total_price {
     my $scanned_items = shift;
@@ -33,9 +35,22 @@ sub total_price {
     return $total;
 }
 
+=head1  scan_data_file
+
+  takes args:
+    filename => example.json,
+    show_subtotals => 1|0,   # if true, show each scanned item, quantity, charge, subtotal
+  returns:
+    total price
+
+  data file is JSON encoding of an array of hashes, eg.
+   '[{"code":"A","quantity":3},{"code":"B","quantity":3},{"code":"C","quantity":1},{"code":"D","quantity":2}]'
+
+=cut
+
 sub scan_data_file {
-    my $filename = shift;
-    open( FH, $filename )  or die "couldn't open $filename: $!";
+    my %args = @_;
+    open( FH, $args{filename} )  or die "couldn't open $args{filename}: $!";
     my $json_str = join "", <FH>;
     # print "$json_str\n";
 
@@ -59,8 +74,12 @@ sub scan_data_file {
         my $subtotal = total_price( $scanned_items );
         my $charge = $subtotal - $previous_subtotal;
         $previous_subtotal = $subtotal;
-        print "code: $code  quantity: $quantity  charge: $charge \t subtotal: $subtotal\n";
+        if ( $args{show_subtotals} ) {
+            print "code: $code  quantity: $quantity  charge: $charge \t subtotal: $subtotal\n";
+        }
     }
+
+    return $previous_subtotal;
 }
 
 1;    
